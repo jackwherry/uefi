@@ -1,3 +1,7 @@
 .DS_Store
-BOOTX64.EFI
 *.o
+*.efi
+*.iso
+*.img
+mnt/
+iso_root/
