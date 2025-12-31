@@ -19,16 +19,38 @@ EFI_STATUS raycast_main() {
 }
 
 EFI_STATUS snake_main() {
-	// loop
-	// clear screen, draw box, draw snake position
-	// update snake position, check collision
-	// get input
-	// wait a second
 	EFI_STATUS status;
 	status = SystemTable->ConOut->OutputString(SystemTable->ConOut, L"snake_main() entered\r\n");
 	if (EFI_ERROR(status)) {
 		return status;
 	}
+
+	BOOLEAN quit = EFI_FALSE;
+	UINTN n = 0;
+	while (!quit) {
+		n++;
+		// clear screen, draw box, draw snake position
+		status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
+		if (EFI_ERROR(status)) {
+			return status;
+		}
+
+		for (UINTN i = 0; i < n; i++) {
+			status = SystemTable->ConOut->OutputString(SystemTable->ConOut, L"s");
+			if (EFI_ERROR(status)) {
+				return status;
+			}
+		}
+
+		// update snake position, check collision
+		// get input
+		// wait a second
+		status = SystemTable->BootServices->Stall(1 * 1000000);
+		if (EFI_ERROR(status)) {
+			return status;
+		}
+	}
+
 	return EFI_SUCCESS;
 }
 
@@ -39,7 +61,7 @@ EFI_STATUS efi_main(EFI_HANDLE ih, EFI_SYSTEM_TABLE *st) {
 	EFI_STATUS status;
 
 	status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-		L"\r\nUEFI Games v0.1.0\r\nbuild 10\r\n\r\n\r\nPress 1 for Snake or 2 for 3D engine\r\n");
+		L"\r\nUEFI Games v0.1.0\r\nbuild 13\r\n\r\n\r\nPress 1 for Snake or 2 for 3D engine\r\n");
 	if (EFI_ERROR(status)) {
 		return status;
 	}
