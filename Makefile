@@ -31,7 +31,6 @@ $(ISO): $(TARGET)
 		-o $@ \
 		--efi-boot $(IMG) \
 		-no-emul-boot \
-		-append_partition 2 0xef $(IMG) \
 		./iso_root ./$(IMG)
 
 .PHONY: clean
