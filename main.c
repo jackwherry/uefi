@@ -82,16 +82,33 @@ EFI_STATUS snake_main(void) {
 	enum dir snake_dir = north;
 	int head_x = 9;
 	int head_y = 10;
-	int tail_x = 9;
-	int tail_y = 12; // todo: better to just find the head in the grid and create a special tail type?
 
 	grid[head_x + head_y * GRID_DIM] = head;
 	grid[head_x + (head_y + 1) * GRID_DIM] = body;
-	grid[tail_x + tail_y * GRID_DIM] = body;
+	grid[head_x + (head_y + 2) * GRID_DIM] = body;
 
-	int speed_mult = 1000000; // starting speed is 1 second (measured in microseconds)
+	// currently used only for history circular buffer
+	struct coord {
+		int x;
+		int y;
+	};
+
+	// Circular buffer for keeping track of the age of the snake segments, so that we can
+	// put the least recent segment in the new head position to "move" the snake 
+	struct coord history[GRID_DIM * GRID_DIM];
+	int head_idx;
+	int tail_idx; // indeces within circular buffer for most and least recent segments, resp.
+
+	history[0] = (struct coord){9, 12}; // tail
+	history[1] = (struct coord){9, 11}; // body
+	history[2] = (struct coord){9, 10}; // head
+	tail_idx = 0;
+	head_idx = 2;
+
+	int delay = 1000000; // starting speed is 1 second (measured in microseconds)
 	BOOLEAN quit = EFI_FALSE;
 	while (!quit) {
+		// PART I: DRAW
 		// clear screen
 		status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
 		if (EFI_ERROR(status)) {
@@ -145,6 +162,11 @@ EFI_STATUS snake_main(void) {
 			return status;
 		}
 
+		// PART II: UPDATE
+
+		// current head becomes body
+		grid[head_x + head_y * GRID_DIM] = body;
+
 		// determine next head position
 		int next_x = -1;
 		int next_y = -1;
@@ -168,7 +190,7 @@ EFI_STATUS snake_main(void) {
 			// game over!
 
 			status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-				L"GAME OVER!\r\nPress any key...\r\n");
+				L"\r\nGAME OVER!\r\nPress any key...\r\n");
 			if (EFI_ERROR(status)) {
 				return status;
 			}
@@ -187,22 +209,31 @@ EFI_STATUS snake_main(void) {
 			return EFI_SUCCESS;
 		}
 
-		// update head position
 		head_x = next_x;
 		head_y = next_y;
 
-		// TODO: update in grid; need queue to figure out where to get the tail from?
+		head_idx = (head_idx + 1) % (GRID_DIM * GRID_DIM);
+		history[head_idx].x = head_x;
+		history[head_idx].y = head_y;
 
-		// get input
+		grid[head_x + head_y * GRID_DIM] = head;
+
+		// we just ate the food, but 
+		if (next_cell_contents == food) {
+			snake_length++;
+		}
 
 
-		// wait a second
-		status = SystemTable->BootServices->Stall(speed_mult);
+		// PART III: GET INPUT
+
+
+		// PART IV: DELAY
+		status = SystemTable->BootServices->Stall(delay);
 		if (EFI_ERROR(status)) {
 			return status;
 		}
 
-		speed_mult -= ((snake_length - 3) * 1000); // 1 ms quicker each time the score goes up
+		delay -= ((snake_length - 3) * 1000); // 1 ms quicker each time the score goes up
 	}
 
 	return EFI_SUCCESS;
@@ -218,7 +249,7 @@ EFI_STATUS menu(void) {
 	}
 
 	status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-		L"\r\nUEFI Games v0.1.0\r\nbuild 30	\r\n==========================================\r\n\r\n");
+		L"\r\nUEFI Games v0.1.0\r\nbuild 34	\r\n==========================================\r\n\r\n");
 	if (EFI_ERROR(status)) {
 		return status;
 	}
