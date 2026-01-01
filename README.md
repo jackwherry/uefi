@@ -1,6 +1,7 @@
 # UEFI Games
+Snake in your bootloader!
 
-todo: screenshot
+<img width="912" height="752" alt="image" src="https://github.com/user-attachments/assets/c203e14a-79a9-4c88-846a-da35472202af" />
 
 ## Building
 You will need Clang and LLD. Additionally, `xorriso` and `mtools` are used by the Makefile to create a bootable ISO.
