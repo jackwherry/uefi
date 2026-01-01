@@ -124,62 +124,41 @@ EFI_STATUS snake_main(void) {
 	UINTN delay = 300000; // starting speed is 1 second (measured in microseconds)
 	BOOLEAN quit = EFI_FALSE;
 	while (!quit) {
-		// PART I: DRAW
-		// clear screen
-		//status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
-		status = SystemTable->ConOut->SetCursorPosition(SystemTable->ConOut, 0, 0);
-		if (EFI_ERROR(status)) {
-			return status;
-		}
+		// DELAY WHILE CHECKING FOR INPUT
+		UINTN microsecond_accumulator = 0;
+		UINTN slice = 10000; // 10 ms
 
-		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-			L"\r\n            S  N  A  K  E\r\n");
-		if (EFI_ERROR(status)) {
-			return status;
-		}
+		while (microsecond_accumulator < delay) {
+			// frequently check for input while delayed
+			EFI_INPUT_KEY Key;
 
-		// draw grid
-		for (int y = 0; y < GRID_DIM; y++) {
-			for (int x = 0; x < GRID_DIM; x++) {
-				CHAR16 cell_contents;
-				enum object obj = grid[x + y * GRID_DIM];
-				if (obj == none) {
-					cell_contents = L' ';
-				} else if (obj == head) {
-					cell_contents = L'@';
-				} else if (obj == body) {
-					cell_contents = L'o';
-				} else if (obj == food) {
-					cell_contents = L'*';
-				} else if (obj == wall) {
-					cell_contents = L'#';
-				} else {
-					cell_contents = L'?';
+			if (SystemTable->BootServices->CheckEvent(SystemTable->ConIn->WaitForKey) == EFI_SUCCESS) {
+				// a keypress is waiting to be read
+				status = SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key);
+				if (!EFI_ERROR(status)) {
+					if (Key.ScanCode == SCAN_UP && snake_dir != south) {
+						snake_dir = north;
+					} else if (Key.ScanCode == SCAN_DOWN && snake_dir != north) {
+						snake_dir = south;
+					} else if (Key.ScanCode == SCAN_RIGHT && snake_dir != west) {
+						snake_dir = east;
+					} else if (Key.ScanCode == SCAN_LEFT && snake_dir != east) {
+						snake_dir = west;
+					}
 				}
+			} // otherwise it's EFI_NOT_READY and we can just continue the loop
 
-				CHAR16 cell_buffer[3];
-				cell_buffer[0] = cell_contents;
-				cell_buffer[1] = L' ';
-				cell_buffer[2] = L'\0';
-
-				status = SystemTable->ConOut->OutputString(SystemTable->ConOut, cell_buffer);
-				if (EFI_ERROR(status)) {
-					return status;
-				}
-			}
-			status = SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\r\n");
-			if (EFI_ERROR(status)) {
-				return status;
-			}
+			// stall for a small amount of time
+			SystemTable->BootServices->Stall(slice);
+			microsecond_accumulator += slice;
 		}
 
-		// print score (snake length - 3) and speed multiplier
-		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\r\nScore: xxx    Delay: xxxxxxx");
-		if (EFI_ERROR(status)) {
-			return status;
+		// 1 ms quicker each time the score goes up, with cap
+		if (delay > 100000) {
+			delay -= ((snake_length - 3) * 1000);
 		}
 
-		// PART II: UPDATE
+		// UPDATE
 
 		// current head becomes body
 		grid[head_x + head_y * GRID_DIM] = body;
@@ -252,38 +231,60 @@ EFI_STATUS snake_main(void) {
 		}
 
 
-		// PART III: DELAY WHILE CHECKING FOR INPUT
-		UINTN microsecond_accumulator = 0;
-		UINTN slice = 10000; // 10 ms
 
-		while (microsecond_accumulator < delay) {
-			// frequently check for input while delayed
-			EFI_INPUT_KEY Key;
-
-			if (SystemTable->BootServices->CheckEvent(SystemTable->ConIn->WaitForKey) == EFI_SUCCESS) {
-				// a keypress is waiting to be read
-				status = SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key);
-				if (!EFI_ERROR(status)) {
-					if (Key.ScanCode == SCAN_UP && snake_dir != south) {
-						snake_dir = north;
-					} else if (Key.ScanCode == SCAN_DOWN && snake_dir != north) {
-						snake_dir = south;
-					} else if (Key.ScanCode == SCAN_RIGHT && snake_dir != west) {
-						snake_dir = east;
-					} else if (Key.ScanCode == SCAN_LEFT && snake_dir != east) {
-						snake_dir = west;
-					}
-				}
-			} // otherwise it's EFI_NOT_READY and we can just continue the loop
-
-			// stall for a small amount of time
-			SystemTable->BootServices->Stall(slice);
-			microsecond_accumulator += slice;
+		// DRAW
+		// clear screen
+		//status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
+		status = SystemTable->ConOut->SetCursorPosition(SystemTable->ConOut, 0, 0);
+		if (EFI_ERROR(status)) {
+			return status;
 		}
 
-		// 1 ms quicker each time the score goes up, with cap
-		if (delay > 100000) {
-			delay -= ((snake_length - 3) * 1000);
+		status = SystemTable->ConOut->OutputString(SystemTable->ConOut,
+			L"\r\n            S  N  A  K  E\r\n");
+		if (EFI_ERROR(status)) {
+			return status;
+		}
+
+		// draw grid
+		for (int y = 0; y < GRID_DIM; y++) {
+			for (int x = 0; x < GRID_DIM; x++) {
+				CHAR16 cell_contents;
+				enum object obj = grid[x + y * GRID_DIM];
+				if (obj == none) {
+					cell_contents = L' ';
+				} else if (obj == head) {
+					cell_contents = L'@';
+				} else if (obj == body) {
+					cell_contents = L'o';
+				} else if (obj == food) {
+					cell_contents = L'*';
+				} else if (obj == wall) {
+					cell_contents = L'#';
+				} else {
+					cell_contents = L'?';
+				}
+
+				CHAR16 cell_buffer[3];
+				cell_buffer[0] = cell_contents;
+				cell_buffer[1] = L' ';
+				cell_buffer[2] = L'\0';
+
+				status = SystemTable->ConOut->OutputString(SystemTable->ConOut, cell_buffer);
+				if (EFI_ERROR(status)) {
+					return status;
+				}
+			}
+			status = SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\r\n");
+			if (EFI_ERROR(status)) {
+				return status;
+			}
+		}
+
+		// print score (snake length - 3) and speed multiplier
+		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\r\nScore: xxx    Delay: xxxxxxx");
+		if (EFI_ERROR(status)) {
+			return status;
 		}
 	}
 
@@ -300,7 +301,7 @@ EFI_STATUS menu(void) {
 	}
 
 	status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-		L"\r\nUEFI Games v0.1.0\r\nbuild 41	\r\n==========================================\r\n\r\n");
+		L"\r\nUEFI Games v0.1.0\r\nbuild 42	\r\n==========================================\r\n\r\n");
 	if (EFI_ERROR(status)) {
 		return status;
 	}
