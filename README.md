@@ -1,5 +1,5 @@
 # UEFI Games
-Snake in your bootloader!
+Snake in bootloader form!
 
 <img width="912" height="752" alt="image" src="https://github.com/user-attachments/assets/c203e14a-79a9-4c88-846a-da35472202af" />
 
