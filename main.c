@@ -39,8 +39,33 @@ EFI_STATUS raycast_main(void) {
 //
 // SNAKE
 //
-
 #define GRID_DIM 19
+
+enum object {
+	none,
+	head,
+	body,
+	food,
+	wall
+};
+
+// simple "random" number generator
+// (since I can't trust that the UEFI RNG protocol is implemented by the firmware)
+UINT32 lgc_rand(UINTN *state) {
+	*state = (*state * 6364136223846793005ULL + 1ULL);
+	return (UINT32)(*state >> 32);
+}
+
+void spawn_food(enum object *grid, UINTN *rng_state) {
+	int x, y;
+	do {
+		x = 1 + (lgc_rand(rng_state) % (GRID_DIM - 2)); // stay away from walls
+		y = 1 + (lgc_rand(rng_state) % (GRID_DIM - 2));
+	} while (grid[x + y * GRID_DIM] != none);
+
+	grid[x + y * GRID_DIM] = food;
+}
+
 EFI_STATUS snake_main(void) {
 	EFI_STATUS status;
 
@@ -55,14 +80,6 @@ EFI_STATUS snake_main(void) {
 		south,
 		east,
 		west
-	};
-
-	enum object {
-		none,
-		head,
-		body,
-		food,
-		wall
 	};
 
 	// the game grid; get an item at coord (x, y): grid[x + y * GRID_DIM]
@@ -91,8 +108,10 @@ EFI_STATUS snake_main(void) {
 		grid[(GRID_DIM - 1) + i * GRID_DIM] = wall;
 	}
 
-	// // get random position for first food
-	// status = SystemTable->
+	// random position for first food
+	UINTN seed = 01;
+	SystemTable->BootServices->GetNextMonotonicCount(&seed);
+	spawn_food(grid, &seed);
 
 	int snake_length = 3;
 	enum dir snake_dir = north;
@@ -177,11 +196,6 @@ EFI_STATUS snake_main(void) {
 			microsecond_accumulator += slice;
 		}
 
-		// 1 ms quicker each time the score goes up, with cap
-		if (delay > 100000) {
-			delay -= ((snake_length - 3) * 1000);
-		}
-
 		// UPDATE
 
 		// current head becomes body
@@ -243,8 +257,12 @@ EFI_STATUS snake_main(void) {
 		if (next_cell_contents == food) {
 			snake_length++;
 			// no need to move the tail index since we want the snake to grow
+			spawn_food(grid, &seed);
 
-			// TODO: spawn new food
+			// 10 ms quicker each time the score goes up, with cap
+			if (delay > 100000) {
+				delay -= ((snake_length - 3) * 10000);
+			}
 		} else {
 			int tail_x = history[tail_idx].x;
 			int tail_y = history[tail_idx].y;
@@ -321,7 +339,7 @@ EFI_STATUS menu(void) {
 	BOOLEAN quit = EFI_FALSE;
 	while (!quit) {
 		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-			L"\r\nUEFI Games v0.1.0\r\nbuild 46	\r\n==========================================\r\n\r\n");
+			L"\r\nUEFI Games v0.1.0\r\nbuild 51	\r\n==========================================\r\n\r\n");
 
 		if (EFI_ERROR(status)) {
 			return status;
