@@ -1,5 +1,4 @@
 #include "efi.h"
-#include "protocol/efi-rng.h"
 
 //
 // DECLARATIONS
@@ -259,9 +258,9 @@ EFI_STATUS snake_main(void) {
 			// no need to move the tail index since we want the snake to grow
 			spawn_food(grid, &seed);
 
-			// 10 ms quicker each time the score goes up, with cap
+			// 3 ms quicker each time the score goes up, with cap
 			if (delay > 100000) {
-				delay -= ((snake_length - 3) * 10000);
+				delay -= ((snake_length - 3) * 3000);
 			}
 		} else {
 			int tail_x = history[tail_idx].x;
@@ -339,7 +338,7 @@ EFI_STATUS menu(void) {
 	BOOLEAN quit = EFI_FALSE;
 	while (!quit) {
 		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-			L"\r\nUEFI Games v0.1.0\r\nbuild 51	\r\n==========================================\r\n\r\n");
+			L"\r\nUEFI Games v0.1.0\r\nbuild 52	\r\n==========================================\r\n\r\n");
 
 		if (EFI_ERROR(status)) {
 			return status;
