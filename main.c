@@ -144,6 +144,30 @@ EFI_STATUS snake_main(void) {
 						snake_dir = east;
 					} else if (Key.ScanCode == SCAN_LEFT && snake_dir != east) {
 						snake_dir = west;
+					} else if (Key.UnicodeChar == L'p') {
+						// paused
+						status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
+							L"\r\nP A U S E D\r\nPress any key...\r\n");
+						if (EFI_ERROR(status)) {
+							return status;
+						}
+
+						// empty console input buffer
+						status = SystemTable->ConIn->Reset(SystemTable->ConIn, EFI_FALSE);
+						if (EFI_ERROR(status)) {
+							return status;
+						}
+
+						EFI_INPUT_KEY Key;
+						UINTN index;
+						SystemTable->BootServices->WaitForEvent(1, &SystemTable->ConIn->WaitForKey, &index);
+						SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key); // read to clear state
+
+						// clear screen
+						status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
+						if (EFI_ERROR(status)) {
+							return status;
+						}
 					}
 				}
 			} // otherwise it's EFI_NOT_READY and we can just continue the loop
@@ -294,20 +318,14 @@ EFI_STATUS snake_main(void) {
 EFI_STATUS menu(void) {
 	EFI_STATUS status;
 
-	// clear screen
-	status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
-	if (EFI_ERROR(status)) {
-		return status;
-	}
-
-	status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-		L"\r\nUEFI Games v0.1.0\r\nbuild 42	\r\n==========================================\r\n\r\n");
-	if (EFI_ERROR(status)) {
-		return status;
-	}
-
 	BOOLEAN quit = EFI_FALSE;
 	while (!quit) {
+		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
+			L"\r\nUEFI Games v0.1.0\r\nbuild 46	\r\n==========================================\r\n\r\n");
+
+		if (EFI_ERROR(status)) {
+			return status;
+		}
 		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
 			L"Press 1 for Snake or 2 for 3D engine\r\n");
 		if (EFI_ERROR(status)) {
@@ -329,11 +347,6 @@ EFI_STATUS menu(void) {
 			status = snake_main();
 		} else if (Key.UnicodeChar == L'2') {
 			status = raycast_main();
-		} else {
-			status = SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\r\nUnknown option\r\n");
-			if (EFI_ERROR(status)) {
-				return status;
-			}
 		}
 	}
 
@@ -344,6 +357,14 @@ EFI_STATUS menu(void) {
 EFI_STATUS efi_main(EFI_HANDLE ih, EFI_SYSTEM_TABLE *st) {
 	ImageHandle = ih;
 	SystemTable = st;
+
+	EFI_STATUS status;
+
+	// clear screen
+	status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
+	if (EFI_ERROR(status)) {
+		return status;
+	}
 
 	return menu();
 }
