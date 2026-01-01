@@ -1,6 +1,6 @@
 # See https://dvdhrm.github.io/2019/01/31/goodbye-gnuefi/
 CC = clang
-CFLAGS = -Wall -Wextra -O2 --target=x86_64-unknown-windows -ffreestanding -fshort-wchar -mno-red-zone -DEFI_PLATFORM=1
+CFLAGS = -Wall -Wextra -O2 --target=x86_64-unknown-windows -ffreestanding -fshort-wchar -mno-red-zone -mno-stack-arg-probe -DEFI_PLATFORM=1
 LDFLAGS = --target=x86_64-unknown-windows -nostdlib -Wl,-entry:efi_main -Wl,-subsystem:efi_application -fuse-ld=lld-link
 INCLUDES = -I./external/yoppeh-efi
 

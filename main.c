@@ -1,4 +1,5 @@
 #include "efi.h"
+#include "protocol/efi-rng.h"
 
 //
 // DECLARATIONS
@@ -15,6 +16,12 @@ EFI_SYSTEM_TABLE *SystemTable;
 
 // declared up here so that we can go back to the menu from within games
 EFI_STATUS menu(void);
+
+// a small subset of MdePkg/Include/Protocol/SimpleTextIn.h
+#define SCAN_UP         0x0001
+#define SCAN_DOWN       0x0002
+#define SCAN_RIGHT      0x0003
+#define SCAN_LEFT       0x0004
 
 //
 // RAYCAST
@@ -78,6 +85,9 @@ EFI_STATUS snake_main(void) {
 		grid[(GRID_DIM - 1) + i * GRID_DIM] = wall;
 	}
 
+	// // get random position for first food
+	// status = SystemTable->
+
 	int snake_length = 3;
 	enum dir snake_dir = north;
 	int head_x = 9;
@@ -110,7 +120,8 @@ EFI_STATUS snake_main(void) {
 	while (!quit) {
 		// PART I: DRAW
 		// clear screen
-		status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
+		//status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
+		status = SystemTable->ConOut->SetCursorPosition(SystemTable->ConOut, 0, 0);
 		if (EFI_ERROR(status)) {
 			return status;
 		}
@@ -218,13 +229,42 @@ EFI_STATUS snake_main(void) {
 
 		grid[head_x + head_y * GRID_DIM] = head;
 
-		// we just ate the food, but 
+		// we already ate the food (it's been overwritten by our new head),
+		// but next_cell_contents has not been updated
 		if (next_cell_contents == food) {
 			snake_length++;
+			// no need to move the tail index since we want the snake to grow
+
+			// TODO: spawn new food
+		} else {
+			int tail_x = history[tail_idx].x;
+			int tail_y = history[tail_idx].y;
+			grid[tail_x + tail_y * GRID_DIM] = none; // delete old tail
+
+			// advance tail index
+			tail_idx = (tail_idx + 1) % (GRID_DIM * GRID_DIM);
 		}
 
 
 		// PART III: GET INPUT
+		EFI_INPUT_KEY Key;
+		
+		status = SystemTable->BootServices->CheckEvent(SystemTable->ConIn->WaitForKey);
+		if (status == EFI_SUCCESS) {
+			// a key has been pressed, read it
+			SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key);
+
+			if (Key.ScanCode == SCAN_UP && snake_dir != south) {
+				snake_dir = north;
+			} else if (Key.ScanCode == SCAN_DOWN && snake_dir != north) {
+				snake_dir = south;
+			} else if (Key.ScanCode == SCAN_RIGHT && snake_dir != west) {
+				snake_dir = east;
+			} else if (Key.ScanCode == SCAN_LEFT && snake_dir != east) {
+				snake_dir = west;
+			}
+		} // otherwise it's EFI_NOT_READY and we can just continue the loop
+
 
 
 		// PART IV: DELAY

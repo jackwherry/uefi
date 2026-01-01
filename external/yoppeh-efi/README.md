@@ -3,7 +3,7 @@
 ## UEFI headers
 
 To build correctly, you have to set the ```EFI_PLATFORM``` variable on the ```cc``` command line:
-```cc EFI_PLATFORM=1``` would use the X64 architecture. The allowed values are defined in efi.h:
+```cc -DEFI_PLATFORM=1``` would use the X64 architecture. The allowed values are defined in efi.h:
 
 ```c
 #define EFI_ARCH_IA32 0

@@ -19,4 +19,4 @@ Create a `pc-q35-10.0` emulated x86_64 machine with a virtual CD/DVD drive, but 
 Not tested yet.
 
 ## Acknowledgements
-This project includes (vendors) these EFI header files: [yoppeh/efi at commit 761b114](https://github.com/yoppeh/efi/tree/761b114e3b186adb82516d5fa8e7a4c559f56ba5).
+This project includes (vendors) these EFI header files, with some additions/modifications: [yoppeh/efi at commit 761b114](https://github.com/yoppeh/efi/tree/761b114e3b186adb82516d5fa8e7a4c559f56ba5).
