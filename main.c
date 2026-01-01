@@ -1,7 +1,7 @@
 #include "efi.h"
 
 //
-// DECLARATIONS
+// DECLARATIONS AND HELPERS
 //
 
 // "A value of native width with the highest bit set." -- MdePkg/Include/X64/ProcessorBind.h
@@ -22,6 +22,36 @@ EFI_STATUS menu(void);
 #define SCAN_RIGHT      0x0003
 #define SCAN_LEFT       0x0004
 
+void uint_to_string(UINTN n, CHAR16 *buffer) {
+	if (n > 99999999) {
+		// more than 8 digits, so we can't fit it in a 10 char string (that must end in \0)
+		buffer = L"TOO BIG";
+		return;
+	}
+
+	// handle 0 explicitly
+	if (n == 0) {
+		buffer[0] = L'0';
+		buffer[1] = L'\0';
+		return;
+	}
+
+	CHAR16 temp[10];
+	int i = 0;
+
+	while (n > 0) {
+		temp[i++] = L'0' + (n % 10);
+		n /= 10;
+	}
+
+	int j = 0;
+	while (i > 0) {
+		buffer[j++] = temp[--i];
+	}
+
+	buffer[j] = L'\0';
+}
+
 //
 // RAYCAST
 //
@@ -38,6 +68,7 @@ EFI_STATUS raycast_main(void) {
 //
 // SNAKE
 //
+
 #define GRID_DIM 19
 
 enum object {
@@ -258,9 +289,9 @@ EFI_STATUS snake_main(void) {
 			// no need to move the tail index since we want the snake to grow
 			spawn_food(grid, &seed);
 
-			// 3 ms quicker each time the score goes up, with cap
+			// 10 ms quicker each time the score goes up, with cap
 			if (delay > 100000) {
-				delay -= ((snake_length - 3) * 3000);
+				delay -= 10000;
 			}
 		} else {
 			int tail_x = history[tail_idx].x;
@@ -323,10 +354,16 @@ EFI_STATUS snake_main(void) {
 		}
 
 		// print score (snake length - 3) and speed multiplier
-		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\r\nScore: xxx    Delay: xxxxxxx");
-		if (EFI_ERROR(status)) {
-			return status;
-		}
+		CHAR16 score_str[10];
+		CHAR16 delay_str[10];
+
+		uint_to_string(snake_length - 3, score_str);
+		uint_to_string(delay, delay_str);
+
+		SystemTable->ConOut->OutputString(SystemTable->ConOut, L"\r\nScore: ");
+		SystemTable->ConOut->OutputString(SystemTable->ConOut, score_str);
+		SystemTable->ConOut->OutputString(SystemTable->ConOut, L"    Delay: ");
+		SystemTable->ConOut->OutputString(SystemTable->ConOut, delay_str);
 	}
 
 	return EFI_SUCCESS;
@@ -338,7 +375,7 @@ EFI_STATUS menu(void) {
 	BOOLEAN quit = EFI_FALSE;
 	while (!quit) {
 		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-			L"\r\nUEFI Games v0.1.0\r\nbuild 52	\r\n==========================================\r\n\r\n");
+			L"\r\nUEFI Games v0.1.0\r\nbuild 54 \r\n==========================================\r\n\r\n");
 
 		if (EFI_ERROR(status)) {
 			return status;
