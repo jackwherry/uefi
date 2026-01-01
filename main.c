@@ -44,6 +44,12 @@ EFI_STATUS raycast_main(void) {
 EFI_STATUS snake_main(void) {
 	EFI_STATUS status;
 
+	// clear screen
+	status = SystemTable->ConOut->Reset(SystemTable->ConOut, EFI_FALSE);
+	if (EFI_ERROR(status)) {
+		return status;
+	}
+
 	enum dir {
 		north,
 		south,
@@ -115,7 +121,7 @@ EFI_STATUS snake_main(void) {
 	tail_idx = 0;
 	head_idx = 2;
 
-	int delay = 1000000; // starting speed is 1 second (measured in microseconds)
+	UINTN delay = 300000; // starting speed is 1 second (measured in microseconds)
 	BOOLEAN quit = EFI_FALSE;
 	while (!quit) {
 		// PART I: DRAW
@@ -246,34 +252,39 @@ EFI_STATUS snake_main(void) {
 		}
 
 
-		// PART III: GET INPUT
-		EFI_INPUT_KEY Key;
-		
-		status = SystemTable->BootServices->CheckEvent(SystemTable->ConIn->WaitForKey);
-		if (status == EFI_SUCCESS) {
-			// a key has been pressed, read it
-			SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key);
+		// PART III: DELAY WHILE CHECKING FOR INPUT
+		UINTN microsecond_accumulator = 0;
+		UINTN slice = 10000; // 10 ms
 
-			if (Key.ScanCode == SCAN_UP && snake_dir != south) {
-				snake_dir = north;
-			} else if (Key.ScanCode == SCAN_DOWN && snake_dir != north) {
-				snake_dir = south;
-			} else if (Key.ScanCode == SCAN_RIGHT && snake_dir != west) {
-				snake_dir = east;
-			} else if (Key.ScanCode == SCAN_LEFT && snake_dir != east) {
-				snake_dir = west;
-			}
-		} // otherwise it's EFI_NOT_READY and we can just continue the loop
+		while (microsecond_accumulator < delay) {
+			// frequently check for input while delayed
+			EFI_INPUT_KEY Key;
 
+			if (SystemTable->BootServices->CheckEvent(SystemTable->ConIn->WaitForKey) == EFI_SUCCESS) {
+				// a keypress is waiting to be read
+				status = SystemTable->ConIn->ReadKeyStroke(SystemTable->ConIn, &Key);
+				if (!EFI_ERROR(status)) {
+					if (Key.ScanCode == SCAN_UP && snake_dir != south) {
+						snake_dir = north;
+					} else if (Key.ScanCode == SCAN_DOWN && snake_dir != north) {
+						snake_dir = south;
+					} else if (Key.ScanCode == SCAN_RIGHT && snake_dir != west) {
+						snake_dir = east;
+					} else if (Key.ScanCode == SCAN_LEFT && snake_dir != east) {
+						snake_dir = west;
+					}
+				}
+			} // otherwise it's EFI_NOT_READY and we can just continue the loop
 
-
-		// PART IV: DELAY
-		status = SystemTable->BootServices->Stall(delay);
-		if (EFI_ERROR(status)) {
-			return status;
+			// stall for a small amount of time
+			SystemTable->BootServices->Stall(slice);
+			microsecond_accumulator += slice;
 		}
 
-		delay -= ((snake_length - 3) * 1000); // 1 ms quicker each time the score goes up
+		// 1 ms quicker each time the score goes up, with cap
+		if (delay > 100000) {
+			delay -= ((snake_length - 3) * 1000);
+		}
 	}
 
 	return EFI_SUCCESS;
@@ -289,7 +300,7 @@ EFI_STATUS menu(void) {
 	}
 
 	status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-		L"\r\nUEFI Games v0.1.0\r\nbuild 34	\r\n==========================================\r\n\r\n");
+		L"\r\nUEFI Games v0.1.0\r\nbuild 41	\r\n==========================================\r\n\r\n");
 	if (EFI_ERROR(status)) {
 		return status;
 	}
