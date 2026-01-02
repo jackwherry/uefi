@@ -36,6 +36,7 @@ $(ISO): $(TARGET)
 		-no-emul-boot \
 		-isohybrid-gpt-basdat \
 		-append_partition 2 0xef $(IMG) \
+		-appended_part_as_gpt \
 		-partition_offset 16 \
 		./iso_root
 

@@ -375,7 +375,7 @@ EFI_STATUS menu(void) {
 	BOOLEAN quit = EFI_FALSE;
 	while (!quit) {
 		status = SystemTable->ConOut->OutputString(SystemTable->ConOut, 
-			L"\r\nUEFI Games v0.2.1\r\nbuild 56 \r\n==========================================\r\n\r\n");
+			L"\r\nUEFI Games v0.2.1\r\nbuild 57 \r\n==========================================\r\n\r\n");
 
 		if (EFI_ERROR(status)) {
 			return status;
