@@ -21,17 +21,23 @@ $(ISO): $(TARGET)
 	mkdir -p iso_root/EFI/BOOT
 	cp $(TARGET) iso_root/EFI/BOOT/BOOTX64.EFI
 
-	dd if=/dev/zero of=$(IMG) bs=1M count=10
-	/sbin/mkfs.vfat $(IMG)
+	dd if=/dev/zero of=$(IMG) bs=1M count=40
+	/sbin/mkfs.vfat -F 32 $(IMG)
 	mmd -i $(IMG) ::/EFI
 	mmd -i $(IMG) ::/EFI/BOOT
 	mcopy -i $(IMG) $(TARGET) ::/EFI/BOOT/BOOTX64.EFI
 
+	# required for xorriso to find it with the -e flag
+	cp $(IMG) iso_root/
+
 	xorriso -as mkisofs -R -J -V "EFI_APP" \
 		-o $@ \
-		--efi-boot $(IMG) \
+		-e $(IMG) \
 		-no-emul-boot \
-		./iso_root ./$(IMG)
+		-isohybrid-gpt-basdat \
+		-append_partition 2 0xef $(IMG) \
+		-partition_offset 16 \
+		./iso_root
 
 .PHONY: clean
 clean:
