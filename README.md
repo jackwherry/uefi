@@ -17,7 +17,7 @@ To build an EFI executable and an ISO 9660 CD image containing it at \BOOT\EFI\B
 Create a `pc-q35-10.0` emulated x86_64 machine with a virtual CD/DVD drive, but no disk, network, or sound. Use the ISO file in the virtual CD drive.
 
 ### Real hardware
-Not tested yet.
+I tested v0.2.1 on a ThinkPad X220 and it worked great. Just `dd` the ISO onto a USB drive and boot from it.
 
 ## Acknowledgements
 This project includes (vendors) these EFI header files, with some additions/modifications: [yoppeh/efi at commit 761b114](https://github.com/yoppeh/efi/tree/761b114e3b186adb82516d5fa8e7a4c559f56ba5).
